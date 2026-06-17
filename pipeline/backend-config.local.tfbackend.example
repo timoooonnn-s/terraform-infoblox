@@ -1,0 +1,20 @@
+# ---------------------------------------------------------------------------
+# Hand-run against the SAME GitLab-managed remote state as the pipeline.
+#
+# Copy to  pipeline/backend-config.local.tfbackend  (git-ignored) and fill in:
+#   * <GITLAB_HOST>   e.g. gitlab.example.com
+#   * <PROJECT_ID>    Project Settings -> General (numeric ID)
+#   * <USERNAME>      your GitLab username
+#   * <TOKEN>         personal access token with the `api` scope
+#
+# Then:  terraform init -backend-config=pipeline/backend-config.local.tfbackend
+# (the scripts/tf.* "init-remote" action does this for you).
+# ---------------------------------------------------------------------------
+address        = "https://<GITLAB_HOST>/api/v4/projects/<PROJECT_ID>/terraform/state/default"
+lock_address   = "https://<GITLAB_HOST>/api/v4/projects/<PROJECT_ID>/terraform/state/default/lock"
+unlock_address = "https://<GITLAB_HOST>/api/v4/projects/<PROJECT_ID>/terraform/state/default/lock"
+username       = "<USERNAME>"
+password       = "<TOKEN>"
+lock_method    = "POST"
+unlock_method  = "DELETE"
+retry_wait_min = 5

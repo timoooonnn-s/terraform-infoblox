@@ -1,0 +1,15 @@
+# ---------------------------------------------------------------------------
+# LOCAL STATE OVERRIDE (offline / throwaway experimentation)
+#
+# Copy this file to the repository root as `backend_override.tf`:
+#
+#     cp pipeline/backend_override.tf.example ./backend_override.tf      # bash
+#     Copy-Item pipeline\backend_override.tf.example .\backend_override.tf  # PowerShell
+#
+# Terraform "*_override.tf" files replace matching blocks, so this swaps the
+# remote http backend (backend.tf) for a local backend. The file is git-ignored
+# and must NEVER be committed. Delete it to return to remote state.
+# ---------------------------------------------------------------------------
+terraform {
+  backend "local" {}
+}

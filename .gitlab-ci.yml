@@ -1,0 +1,10 @@
+###############################################################################
+# Thin entrypoint. ALL pipeline logic lives in the pipeline/ subfolder so the
+# CI configuration stays self-contained and tidy.
+#
+# Alternative: in the project's CI/CD settings set the "CI/CD configuration
+# file" path to `pipeline/gitlab-ci.yml` and delete this stub file.
+###############################################################################
+
+include:
+  - local: pipeline/gitlab-ci.yml

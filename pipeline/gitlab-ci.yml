@@ -1,0 +1,81 @@
+###############################################################################
+# Infoblox Terraform pipeline (GitLab CI)
+#
+# Stages: validate -> plan -> apply
+#   * validate : terraform fmt + validate (no backend needed)
+#   * plan     : remote-state plan, saved as an artifact + MR widget report
+#   * apply    : default branch only, MANUAL approval, consumes the saved plan
+#
+# State: GitLab-managed HTTP backend, wired automatically by `gitlab-terraform`.
+# Secrets: provided as masked/protected CI/CD variables (see pipeline/README.md).
+###############################################################################
+
+image:
+  name: registry.gitlab.com/gitlab-org/terraform-images/stable:latest
+
+variables:
+  # Location of the root Terraform module (where main.tf / backend.tf live).
+  TF_ROOT: ${CI_PROJECT_DIR}
+  # Name of the GitLab-managed state. Change per environment if you split them.
+  TF_STATE_NAME: default
+  TF_IN_AUTOMATION: "true"
+
+cache:
+  key: ${TF_STATE_NAME}
+  paths:
+    - ${TF_ROOT}/.terraform
+
+# Only run for merge requests and the default branch (avoids duplicate
+# branch+MR pipelines).
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+stages:
+  - validate
+  - plan
+  - apply
+
+before_script:
+  - cd "${TF_ROOT}"
+
+# --- validate: no backend / no credentials required --------------------------
+fmt:
+  stage: validate
+  script:
+    - terraform fmt -check -recursive
+
+validate:
+  stage: validate
+  script:
+    - terraform init -backend=false
+    - terraform validate
+
+# --- plan: remote state, needs NIOS reachability + credentials ---------------
+plan:
+  stage: plan
+  script:
+    - gitlab-terraform plan
+    - gitlab-terraform plan-json
+  artifacts:
+    name: plan-${CI_COMMIT_SHORT_SHA}
+    paths:
+      - ${TF_ROOT}/plan.cache
+    reports:
+      terraform: ${TF_ROOT}/plan.json
+    expire_in: 7 days
+
+# --- apply: default branch, manual gate, consumes the saved plan -------------
+apply:
+  stage: apply
+  script:
+    - gitlab-terraform apply
+  dependencies:
+    - plan
+  resource_group: ${TF_STATE_NAME}   # serialize applies against shared state
+  environment:
+    name: production
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
